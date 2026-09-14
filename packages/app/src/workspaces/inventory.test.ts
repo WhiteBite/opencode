@@ -7,7 +7,7 @@ import { normalizeProjectInfo, updateProjectInfo } from "@/runtime/server/global
 
 function setup(list: (directory: string) => Promise<WorktreeDirectory[]>) {
   const client = new QueryClient()
-  const discovery = Promise.withResolvers<void>()
+  const discovery = Promise.withResolvers<WorktreeDirectory[]>()
   const discoveries: string[] = []
   const calls: string[] = []
   const updates: Array<[string, WorktreeDirectory[]]> = []
@@ -20,7 +20,7 @@ function setup(list: (directory: string) => Promise<WorktreeDirectory[]>) {
         calls.push(directory)
         return list(directory)
       },
-      refresh: (input) => {
+      discover: (input) => {
         discoveries.push(input.projectID)
         return discovery.promise
       },
@@ -33,21 +33,22 @@ function setup(list: (directory: string) => Promise<WorktreeDirectory[]>) {
 }
 
 describe("createWorktreeInventory", () => {
-  test("loads once per project, shares in-flight work, and publishes the result", async () => {
+  test("lists a project, shares in-flight work, and publishes each result", async () => {
     const gate = Promise.withResolvers<void>()
     const setupResult = setup(async (directory) => {
       await gate.promise
       return [{ directory }, { directory: `${directory}/feature`, strategy: "git" }]
     })
-    const first = setupResult.inventory.load("/repo")
-    const second = setupResult.inventory.load("/repo")
+    const first = setupResult.inventory.list("/repo")
+    const second = setupResult.inventory.list("/repo")
     expect(setupResult.calls).toEqual(["/repo"])
     gate.resolve()
     expect(await first).toHaveLength(2)
     expect(await second).toHaveLength(2)
-    await setupResult.inventory.load("/repo")
-    expect(setupResult.calls).toEqual(["/repo"])
+    await setupResult.inventory.list("/repo")
+    expect(setupResult.calls).toEqual(["/repo", "/repo"])
     expect(setupResult.updates).toEqual([
+      ["/repo", [{ directory: "/repo" }, { directory: "/repo/feature", strategy: "git" }]],
       ["/repo", [{ directory: "/repo" }, { directory: "/repo/feature", strategy: "git" }]],
     ])
     expect(setupResult.inventory.cached("/repo")).toHaveLength(2)
@@ -55,26 +56,24 @@ describe("createWorktreeInventory", () => {
     setupResult.client.clear()
   })
 
-  test("reloads only saved inventories a view already loaded", async () => {
+  test("list reads saved inventory without discovery", async () => {
     const setupResult = setup(async (directory) => [{ directory }])
-    await setupResult.inventory.reload("/never-opened")
-    expect(setupResult.calls).toEqual([])
-    await setupResult.inventory.load("/opened")
-    await setupResult.inventory.reload("/opened")
-    expect(setupResult.calls).toEqual(["/opened", "/opened"])
+    await setupResult.inventory.list("/opened")
+    expect(setupResult.calls).toEqual(["/opened"])
+    expect(setupResult.discoveries).toEqual([])
     setupResult.client.clear()
   })
 
-  test("a failed load is not cached and never rejects the caller", async () => {
+  test("a failed list is not cached and never rejects the caller", async () => {
     let fail = true
     const setupResult = setup(async (directory) => {
       if (fail) throw new Error("Location unavailable")
       return [{ directory }]
     })
-    expect(await setupResult.inventory.load("/repo")).toBeUndefined()
+    expect(await setupResult.inventory.list("/repo")).toBeUndefined()
     expect(setupResult.inventory.cached("/repo")).toBeUndefined()
     fail = false
-    expect(await setupResult.inventory.load("/repo")).toEqual([{ directory: "/repo" }])
+    expect(await setupResult.inventory.list("/repo")).toEqual([{ directory: "/repo" }])
     expect(setupResult.calls).toEqual(["/repo", "/repo"])
     setupResult.client.clear()
   })
@@ -87,15 +86,15 @@ describe("createWorktreeInventory", () => {
     expect(worktreeInventoryKey(ServerScope.local, "/repo")).not.toEqual(worktreeInventoryKey(remote, "/repo"))
   })
 
-  test("discovery refreshes one project and then re-reads its saved inventory", async () => {
+  test("discover returns and caches one project's latest saved inventory", async () => {
     const rows = [{ directory: "/repo" }]
     const result = setup(async () => [...rows])
-    expect(await result.inventory.load("project")).toEqual(rows)
-    const pending = result.inventory.refresh("project")
+    expect(await result.inventory.list("project")).toEqual(rows)
+    const pending = result.inventory.discover("project")
     rows.push({ directory: "/external" })
-    result.discovery.resolve()
+    result.discovery.resolve([...rows])
     expect(await pending).toEqual(rows)
-    expect(result.calls).toEqual(["project", "project"])
+    expect(result.calls).toEqual(["project"])
     expect(result.discoveries).toEqual(["project"])
     result.client.clear()
   })

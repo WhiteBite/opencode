@@ -55,7 +55,7 @@ test("exposes every standard HTTP API group", () => {
   expect(client.experimental.persistentPty.read).toBeFunction()
   expect(Object.keys(client.shell)).toEqual(["list", "create", "get", "timeout", "output", "remove"])
   expect(Object.keys(client.project)).toEqual(["list", "update"])
-  expect(Object.keys(client.worktree)).toEqual(["list", "create", "remove", "refresh"])
+  expect(Object.keys(client.worktree)).toEqual(["list", "create", "remove", "discover"])
 })
 
 test("config.get returns ordered config entries for a location", async () => {
@@ -344,8 +344,9 @@ test("all worktree operations require a project ID", async () => {
       const request = input instanceof Request ? input : new Request(input, init)
       requests.push(request)
       if (request.method === "GET") return Response.json([{ directory: "/tmp/project" }])
-      if (request.method === "POST" && !request.url.endsWith("/refresh"))
+      if (request.method === "POST" && new URL(request.url).pathname === "/api/worktree")
         return Response.json({ directory: "/tmp/worktrees/api" })
+      if (request.method === "POST") return Response.json([{ directory: "/tmp/project" }])
       return new Response(null, { status: 204 })
     },
   })
@@ -363,13 +364,13 @@ test("all worktree operations require a project ID", async () => {
     directory: "/tmp/worktrees/api",
     force: false,
   })
-  await client.worktree.refresh({ projectID: "project" })
+  expect(await client.worktree.discover({ projectID: "project" })).toEqual([{ directory: "/tmp/project" }])
 
   expect(requests.map((request) => [request.method, request.url])).toEqual([
     ["GET", "http://localhost:3000/api/worktree?projectID=project"],
     ["POST", "http://localhost:3000/api/worktree"],
     ["DELETE", "http://localhost:3000/api/worktree"],
-    ["POST", "http://localhost:3000/api/worktree/refresh"],
+    ["POST", "http://localhost:3000/api/worktree/discover"],
   ])
   expect(await requests[1]?.json()).toEqual({
     projectID: "project",
@@ -389,8 +390,9 @@ test("worktree operations use the explicit project even with default location he
       const request = new Request(input, init)
       requests.push(request)
       if (request.method === "GET") return Response.json([{ directory: "/configured/task", strategy: "git" }])
-      if (request.method === "DELETE" || new URL(request.url).pathname.endsWith("/refresh"))
-        return new Response(null, { status: 204 })
+      if (request.method === "DELETE") return new Response(null, { status: 204 })
+      if (new URL(request.url).pathname.endsWith("/discover"))
+        return Response.json([{ directory: "/configured/task", strategy: "git" }])
       return Response.json({ directory: "/configured/task" })
     },
   })
@@ -404,10 +406,12 @@ test("worktree operations use the explicit project even with default location he
     directory: "/configured/task",
     force: true,
   })
-  await client.worktree.refresh({ projectID: "project" })
+  expect(await client.worktree.discover({ projectID: "project" })).toEqual([
+    { directory: "/configured/task", strategy: "git" },
+  ])
   expect(requests[1]?.url).toBe("http://localhost:3000/api/worktree")
   expect(await requests[1]?.json()).toEqual({ projectID: "project", directory: "/configured/task", force: true })
-  expect(requests[2]?.url).toBe("http://localhost:3000/api/worktree/refresh")
+  expect(requests[2]?.url).toBe("http://localhost:3000/api/worktree/discover")
   expect(await client.worktree.list({ projectID: "project" })).toEqual([
     { directory: "/configured/task", strategy: "git" },
   ])

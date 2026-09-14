@@ -156,7 +156,7 @@ describe("createRequestQueue", () => {
   test("only worktree creation counts as a setup request", () => {
     expect(isSetupRequest("POST", "/api/worktree")).toBe(true)
     expect(isSetupRequest("GET", "/api/worktree")).toBe(false)
-    expect(isSetupRequest("POST", "/api/worktree/refresh")).toBe(false)
+    expect(isSetupRequest("POST", "/api/worktree/discover")).toBe(false)
     expect(isSetupRequest("DELETE", "/api/worktree")).toBe(false)
   })
 

@@ -135,8 +135,8 @@ export function DialogOpen(props: { sessions: SessionInfo[]; onLoad: (sessions: 
     const id = projectID()
     if (!id) return
     void client.api.worktree
-      .refresh({ projectID: id })
-      .then(() => worktreeActions.refetch())
+      .discover({ projectID: id })
+      .then(worktreeActions.mutate)
       .catch(() => undefined)
   })
 

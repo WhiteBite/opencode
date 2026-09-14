@@ -18,9 +18,7 @@ export const WorktreeHandler = HttpApiBuilder.group(Api, "server.worktree", (han
       .handle("worktree.remove", (ctx) =>
         worktrees.remove(ctx.payload).pipe(badRequest, Effect.as(HttpApiSchema.NoContent.make())),
       )
-      .handle("worktree.refresh", (ctx) =>
-        worktrees.refresh(ctx.payload).pipe(badRequest, Effect.as(HttpApiSchema.NoContent.make())),
-      )
+      .handle("worktree.discover", (ctx) => worktrees.discover(ctx.payload).pipe(badRequest))
   }),
 )
 

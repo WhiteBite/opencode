@@ -12234,15 +12234,22 @@
         }
       }
     },
-    "/api/worktree/refresh": {
+    "/api/worktree/discover": {
       "post": {
         "tags": ["worktree"],
-        "operationId": "worktree.refresh",
+        "operationId": "worktree.discover",
         "parameters": [],
         "security": [],
         "responses": {
-          "204": {
-            "description": "<No Content>"
+          "200": {
+            "description": "Worktree.List",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Worktree.List"
+                }
+              }
+            }
           },
           "400": {
             "description": "WorktreeError | InvalidRequestError",
@@ -12282,8 +12289,8 @@
             }
           }
         },
-        "description": "Load the project's canonical configuration and discover worktrees across known checkout roots using all available strategies.",
-        "summary": "Refresh worktrees",
+        "description": "Load the project's canonical configuration, discover worktrees across known checkout roots using all available strategies, reconcile saved state, and return the latest inventory.",
+        "summary": "Discover worktrees",
         "requestBody": {
           "content": {
             "application/json": {

@@ -219,7 +219,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK, data: Data) {
     connection.handleEvent({ type: event.type })
     if (event.type === "project.updated") applyProjectUpdate(event.data)
     if (event.type === "worktree.updated") {
-      void worktrees.reload(event.data.projectID)
+      void worktrees.list(event.data.projectID)
       void bootstrap.refetch()
       return
     }

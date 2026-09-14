@@ -99,7 +99,7 @@ const fixtureWorktree = Effect.fnUntraced(function* () {
       service.create({ projectID: input.projectID, ...options }, strategies),
     remove: (options: Omit<Worktree.RemoveInput, "projectID">) =>
       service.remove({ projectID: input.projectID, ...options }, strategies),
-    refresh: () => service.refresh({ projectID: input.projectID }, strategies),
+    discover: () => service.discover({ projectID: input.projectID }, strategies),
   }
 })
 
@@ -573,7 +573,7 @@ describe("Worktree", () => {
     }),
   )
 
-  it.live("does not publish an event when refresh finds no directory changes", () =>
+  it.live("does not publish an event when discover finds no directory changes", () =>
     Effect.gen(function* () {
       const worktree = yield* fixtureWorktree()
       const bus = yield* Bus.Service
@@ -584,7 +584,7 @@ describe("Worktree", () => {
         Effect.flatMap((fiber) =>
           Effect.gen(function* () {
             yield* Effect.yieldNow
-            yield* worktree.refresh()
+            yield* worktree.discover()
             return yield* Fiber.join(fiber).pipe(Effect.timeoutOption("50 millis"))
           }),
         ),
@@ -594,7 +594,7 @@ describe("Worktree", () => {
     }),
   )
 
-  it.live("refresh discovers and prunes an externally managed git worktree", () =>
+  it.live("discover finds and prunes an externally managed git worktree", () =>
     Effect.gen(function* () {
       const input = yield* setup()
       const worktree = yield* fixtureWorktree()
@@ -623,7 +623,7 @@ describe("Worktree", () => {
 
       const discovered = abs(yield* Effect.promise(() => fs.realpath(target)))
       const existing = abs(yield* Effect.promise(() => fs.realpath(unchanged)))
-      expect(yield* worktree.refresh()).toEqual({ updated: [discovered], removed: [] })
+      expect(yield* worktree.discover()).toEqual(yield* worktree.list())
 
       expect(yield* stored(input.projectID)).toEqual(
         [
@@ -636,16 +636,13 @@ describe("Worktree", () => {
 
       yield* Effect.promise(() => $`git worktree remove --force ${target}`.cwd(input.root.path).quiet())
       yield* Effect.promise(() => $`git worktree remove --force ${unchanged}`.cwd(input.root.path).quiet())
-      expect(yield* worktree.refresh()).toEqual({
-        updated: [],
-        removed: [discovered, existing].toSorted(),
-      })
+      expect(yield* worktree.discover()).toEqual(yield* worktree.list())
       expect(yield* stored(input.projectID)).toEqual([{ directory: input.sourceDirectory, strategy: null }])
     }),
   )
 
   it.live(
-    "refresh ignores stale git worktree registrations",
+    "discover ignores stale git worktree registrations",
     () =>
       Effect.gen(function* () {
         const input = yield* setup()
@@ -657,7 +654,7 @@ describe("Worktree", () => {
         yield* Effect.promise(() => fs.rm(stale, { recursive: true, force: true }))
         yield* Effect.promise(() => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
 
-        yield* worktree.refresh()
+        yield* worktree.discover()
 
         const discovered = abs(yield* Effect.promise(() => fs.realpath(target)))
         expect(yield* stored(input.projectID)).toEqual(
@@ -670,19 +667,19 @@ describe("Worktree", () => {
     15_000,
   )
 
-  it.live("refresh ignores existing directories that are no longer git checkouts", () =>
+  it.live("discover ignores existing directories that are no longer git checkouts", () =>
     Effect.gen(function* () {
       const input = yield* setup()
       yield* Effect.promise(() => fs.rm(path.join(input.sourceDirectory, ".git"), { recursive: true }))
       const worktree = yield* fixtureWorktree()
 
-      yield* worktree.refresh()
+      yield* worktree.discover()
 
       expect(yield* stored(input.projectID)).toEqual([{ directory: input.sourceDirectory, strategy: null }])
     }),
   )
 
-  it.live("refresh seeds the canonical checkout when inventory is empty", () =>
+  it.live("discover seeds the canonical checkout when inventory is empty", () =>
     Effect.gen(function* () {
       const input = yield* setup()
       yield* input.db
@@ -692,14 +689,11 @@ describe("Worktree", () => {
         .pipe(Effect.orDie)
       const worktree = yield* fixtureWorktree()
 
-      expect(yield* worktree.refresh()).toEqual({
-        updated: [input.sourceDirectory],
-        removed: [],
-      })
+      expect(yield* worktree.discover()).toEqual([{ directory: input.sourceDirectory, strategy: undefined }])
     }),
   )
 
-  it.live("refresh removes missing ordinary checkouts", () =>
+  it.live("discover removes missing ordinary checkouts", () =>
     Effect.gen(function* () {
       const input = yield* setup()
       const missing = abs(`${input.root.path}-missing-checkout`)
@@ -710,7 +704,7 @@ describe("Worktree", () => {
         .pipe(Effect.orDie)
       const worktree = yield* fixtureWorktree()
 
-      expect(yield* worktree.refresh()).toEqual({ updated: [], removed: [missing] })
+      expect(yield* worktree.discover()).toEqual([{ directory: input.sourceDirectory, strategy: undefined }])
 
       expect(yield* stored(input.projectID)).not.toContainEqual({ directory: missing, strategy: null })
     }),
@@ -761,7 +755,7 @@ describe("Worktree", () => {
       expect(yield* stored(input.projectID)).toContainEqual({ directory: fallback.directory, strategy: "git" })
       const error = yield* worktrees.remove({ directory: created.directory, force: false }).pipe(Effect.flip)
       expect(error).toBeInstanceOf(Worktree.StrategyUnavailableError)
-      yield* worktrees.refresh()
+      yield* worktrees.discover()
       expect(yield* stored(input.projectID)).toContainEqual({ directory: created.directory, strategy: "second" })
     }),
   )
@@ -840,7 +834,7 @@ describe("Worktree", () => {
     }),
   )
 
-  it.live("only refresh discovers and prunes; list reads saved inventory", () =>
+  it.live("only discover scans and prunes; list reads saved inventory", () =>
     Effect.gen(function* () {
       const input = yield* setup()
       const worktrees = yield* fixtureWorktree()
@@ -861,13 +855,13 @@ describe("Worktree", () => {
       )
       expect(yield* worktrees.list()).not.toContainEqual({ directory, strategy: "discovered-copy" })
       expect(sources).toEqual([])
-      yield* worktrees.refresh()
+      yield* worktrees.discover()
       expect(yield* worktrees.list()).toContainEqual({ directory, strategy: "discovered-copy" })
       expect(sources).toEqual([input.sourceDirectory])
       expect(yield* stored(input.projectID)).toContainEqual({ directory, strategy: "discovered-copy" })
       yield* Effect.promise(() => fs.rmdir(directory))
       expect(yield* worktrees.list()).toContainEqual({ directory, strategy: "discovered-copy" })
-      yield* worktrees.refresh()
+      yield* worktrees.discover()
       expect(yield* worktrees.list()).not.toContainEqual({ directory, strategy: "discovered-copy" })
       expect(sources).toEqual([input.sourceDirectory, input.sourceDirectory])
     }),
@@ -887,7 +881,7 @@ describe("Worktree", () => {
       )
       const target = abs(path.join(input.root.path, "external"))
       yield* Effect.promise(() => $`git worktree add --detach ${target} HEAD`.cwd(input.root.path).quiet())
-      yield* worktrees.refresh()
+      yield* worktrees.discover()
       expect(yield* worktrees.list()).toContainEqual({ directory: target, strategy: "git" })
     }),
   )

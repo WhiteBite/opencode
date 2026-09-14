@@ -240,8 +240,8 @@ import type {
   WorktreeCreateOutput,
   WorktreeRemoveInput,
   WorktreeRemoveOutput,
-  WorktreeRefreshInput,
-  WorktreeRefreshOutput,
+  WorktreeDiscoverInput,
+  WorktreeDiscoverOutput,
   WorkspaceCreateInput,
   WorkspaceCreateOutput,
   WorkspaceDestroyInput,
@@ -2023,15 +2023,15 @@ export function make(options: ClientOptions) {
           },
           requestOptions,
         ),
-      refresh: (input: WorktreeRefreshInput, requestOptions?: RequestOptions) =>
-        request<WorktreeRefreshOutput>(
+      discover: (input: WorktreeDiscoverInput, requestOptions?: RequestOptions) =>
+        request<WorktreeDiscoverOutput>(
           {
             method: "POST",
-            path: `/api/worktree/refresh`,
+            path: `/api/worktree/discover`,
             body: { projectID: input["projectID"] },
-            successStatus: 204,
+            successStatus: 200,
             declaredStatuses: [400, 401, 404],
-            empty: true,
+            empty: false,
           },
           requestOptions,
         ),

@@ -106,9 +106,9 @@ const Group = HttpApiGroup.make("mock")
     }),
   )
   .add(
-    HttpApiEndpoint.post("worktreeRefresh", "/api/worktree/refresh", {
+    HttpApiEndpoint.post("worktreeDiscover", "/api/worktree/discover", {
       payload: Schema.Struct({ projectID: Schema.String }),
-      success: NoContent,
+      success: Json,
     }),
   )
   .add(HttpApiEndpoint.get("location", "/api/location", { success: Json }))

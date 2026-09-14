@@ -38,12 +38,6 @@ export type CreateInput = typeof CreateInput.Type
 export const RemoveInput = Worktree.RemoveInput
 export type RemoveInput = typeof RemoveInput.Type
 
-export const RefreshResult = Schema.Struct({
-  updated: Schema.Array(AbsolutePath),
-  removed: Schema.Array(AbsolutePath),
-}).annotate({ identifier: "Worktree.RefreshResult" })
-export type RefreshResult = typeof RefreshResult.Type
-
 export const Info = Worktree.Info
 export type Info = typeof Info.Type
 
@@ -100,10 +94,10 @@ export interface Interface {
   // The plugin bridge supplies its registry so canonical-project setup can use registrations made so far.
   readonly create: (input: CreateInput, current?: WorktreeStrategies.Interface) => Effect.Effect<Info, Error>
   readonly remove: (input: RemoveInput, current?: WorktreeStrategies.Interface) => Effect.Effect<void, Error>
-  readonly refresh: (
+  readonly discover: (
     input: { projectID: Project.ID },
     current?: WorktreeStrategies.Interface,
-  ) => Effect.Effect<RefreshResult, Error>
+  ) => Effect.Effect<List, Error>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Worktree") {}
@@ -276,7 +270,7 @@ const layer = Layer.effect(
       yield* changed(input.projectID, yield* ops.remove(input.projectID, worktreeDirectory))
     }, Effect.scoped)
 
-    const refresh = Effect.fn("Worktree.refresh")(function* (
+    const discover = Effect.fn("Worktree.discover")(function* (
       input: { projectID: Project.ID },
       current?: WorktreeStrategies.Interface,
     ) {
@@ -330,7 +324,7 @@ const layer = Layer.effect(
         )
         .pipe(Effect.orDie)
       yield* changed(input.projectID, changes.updated.length > 0 || changes.removed.length > 0)
-      return changes
+      return yield* ops.list(input.projectID)
     }, Effect.scoped)
 
     return Service.of({
@@ -340,7 +334,7 @@ const layer = Layer.effect(
       }),
       create,
       remove,
-      refresh,
+      discover,
     })
   }),
 )

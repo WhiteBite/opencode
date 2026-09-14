@@ -6356,9 +6356,9 @@ export type WorktreeRemoveInput = {
 
 export type WorktreeRemoveOutput = void
 
-export type WorktreeRefreshInput = { readonly projectID: { readonly projectID: string }["projectID"] }
+export type WorktreeDiscoverInput = { readonly projectID: { readonly projectID: string }["projectID"] }
 
-export type WorktreeRefreshOutput = void
+export type WorktreeDiscoverOutput = WorktreeList
 
 export type WorkspaceCreateInput = {
   readonly id?: { readonly id?: string | undefined; readonly provider: string }["id"]

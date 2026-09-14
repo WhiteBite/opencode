@@ -2009,17 +2009,17 @@ export type WorktreeRemoveInput = {
 export type WorktreeRemoveOutput = void
 export type WorktreeRemoveOperation<E = never> = (input: WorktreeRemoveInput) => Effect.Effect<WorktreeRemoveOutput, E>
 
-export type WorktreeRefreshInput = { readonly projectID: Project.ID }
-export type WorktreeRefreshOutput = void
-export type WorktreeRefreshOperation<E = never> = (
-  input: WorktreeRefreshInput,
-) => Effect.Effect<WorktreeRefreshOutput, E>
+export type WorktreeDiscoverInput = { readonly projectID: Project.ID }
+export type WorktreeDiscoverOutput = Worktree.List
+export type WorktreeDiscoverOperation<E = never> = (
+  input: WorktreeDiscoverInput,
+) => Effect.Effect<WorktreeDiscoverOutput, E>
 
 export interface WorktreeApi<E = never> {
   readonly list: WorktreeListOperation<E>
   readonly create: WorktreeCreateOperation<E>
   readonly remove: WorktreeRemoveOperation<E>
-  readonly refresh: WorktreeRefreshOperation<E>
+  readonly discover: WorktreeDiscoverOperation<E>
 }
 
 export type WorkspaceCreateInput = { readonly id?: Workspace.ID | undefined; readonly provider: string }

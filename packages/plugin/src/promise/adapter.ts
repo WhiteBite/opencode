@@ -549,7 +549,7 @@ export function fromPromise(plugin: Plugin) {
             list: adaptApiMethod(WorktreeEndpoints["worktree.list"], host.worktree.list),
             create: adaptApiMethod(WorktreeEndpoints["worktree.create"], host.worktree.create),
             remove: adaptApiMethod(WorktreeEndpoints["worktree.remove"], host.worktree.remove),
-            refresh: adaptApiMethod(WorktreeEndpoints["worktree.refresh"], host.worktree.refresh),
+            discover: adaptApiMethod(WorktreeEndpoints["worktree.discover"], host.worktree.discover),
             reload: () => run(host.worktree.reload()),
             transform: (callback) =>
               register(

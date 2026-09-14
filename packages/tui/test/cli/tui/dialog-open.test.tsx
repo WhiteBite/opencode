@@ -286,7 +286,7 @@ test("loads Git worktrees only when drilling into a project or its associated di
     const worktrees = await fixture.app.waitForFrame(
       (frame) => frame.includes("other-branch") && frame.includes("ctrl+n"),
     )
-    expect(requests).toBe(2)
+    expect(requests).toBe(1)
     expect(worktrees).toContain("Worktrees")
     expect(worktrees).toContain("●")
     expect(worktrees.indexOf("OpenCode")).toBeLessThan(worktrees.indexOf("current-branch"))
@@ -298,7 +298,7 @@ test("loads Git worktrees only when drilling into a project or its associated di
     await fixture.app.waitForFrame((frame) => frame.includes("current-branch") && !frame.includes("OpenCode"))
     fixture.app.mockInput.pressArrow("right")
     await fixture.app.waitForFrame((frame) => frame.includes("other-branch") && frame.includes("ctrl+n"))
-    expect(requests).toBe(4)
+    expect(requests).toBe(2)
     fixture.app.mockInput.pressEscape()
     const restored = await fixture.app.waitForFrame(
       (frame) => frame.includes("current-branch") && !frame.includes("Worktrees"),

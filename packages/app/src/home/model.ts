@@ -39,7 +39,7 @@ export function createHomeController() {
     const id = selectedProject()?.id
     if (!ctx || !id || ctx.sdk.connection.status() !== "connected") return
     // Selecting a project is the demand for its worktree inventory: the session filter spans its worktrees.
-    void ctx.sync.worktrees.refresh(id)
+    void ctx.sync.worktrees.discover(id)
   })
 
   function setSelection(next: HomeProjectSelection) {

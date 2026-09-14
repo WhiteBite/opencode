@@ -61,16 +61,16 @@ export const WorktreeGroup = HttpApiGroup.make("server.worktree")
     ),
   )
   .add(
-    HttpApiEndpoint.post("worktree.refresh", `${root}/refresh`, {
+    HttpApiEndpoint.post("worktree.discover", `${root}/discover`, {
       payload: Schema.Struct({ projectID: Project.ID }),
-      success: HttpApiSchema.NoContent,
+      success: Worktree.List,
       error: [WorktreeError, ProjectNotFoundError],
     }).annotateMerge(
       OpenApi.annotations({
-        identifier: "worktree.refresh",
-        summary: "Refresh worktrees",
+        identifier: "worktree.discover",
+        summary: "Discover worktrees",
         description:
-          "Load the project's canonical configuration and discover worktrees across known checkout roots using all available strategies.",
+          "Load the project's canonical configuration, discover worktrees across known checkout roots using all available strategies, reconcile saved state, and return the latest inventory.",
       }),
     ),
   )

@@ -310,7 +310,14 @@ function mockHandlers(config: MockServerConfig, state: { cursors: Map<string, st
           })
         },
         worktreeRemove: () => noContent,
-        worktreeRefresh: () => noContent,
+        worktreeDiscover: () =>
+          Effect.succeed([
+            { directory: config.directory },
+            ...((config.project as { sandboxes?: string[] }).sandboxes ?? []).map((directory) => ({
+              directory,
+              strategy: "git",
+            })),
+          ]),
         location: () => Effect.succeed(location(config)),
         permissionRequests: () =>
           Effect.succeed({

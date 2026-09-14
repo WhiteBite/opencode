@@ -76,7 +76,7 @@ export function DialogWorkspaces(props: DialogWorkspacesProps) {
     return loadedProject()
   })
 
-  const [directories, { refetch }] = createResource(
+  const [directories, { mutate, refetch }] = createResource(
     () => (props.fixture || props.initialRemoving ? undefined : props.projectID),
     async (projectID, info): Promise<ReadonlyArray<ProjectDirectory> | undefined> => {
       try {
@@ -97,7 +97,11 @@ export function DialogWorkspaces(props: DialogWorkspacesProps) {
     void discover().catch(() => undefined)
   })
   function discover() {
-    return client.api.worktree.refresh({ projectID: props.projectID }).then(() => refetch())
+    return client.api.worktree.discover({ projectID: props.projectID }).then((items) => {
+      setLoadError(undefined)
+      mutate(items)
+      return items
+    })
   }
   const directoryData = createMemo(() => directories.latest ?? props.initialDirectories)
   // Show the locked error view only when we have nothing to display. A refresh

@@ -28,7 +28,7 @@ it.live("list reads saved inventory even when its checkout is missing, without b
         name: "WorktreeError",
         data: { message: `Worktree directory unavailable: ${directory}` },
       })
-      await expect(api.worktree.refresh({ projectID: session.projectID })).rejects.toMatchObject({
+      await expect(api.worktree.discover({ projectID: session.projectID })).rejects.toMatchObject({
         name: "WorktreeError",
         data: { message: `Worktree directory unavailable: ${directory}` },
       })
@@ -43,7 +43,7 @@ it.live("list reads saved inventory even when its checkout is missing, without b
   }),
 )
 
-it.live("refresh discovers both clones while list alone never discovers external worktrees", () =>
+it.live("discover returns both clones while list alone never discovers external worktrees", () =>
   Effect.gen(function* () {
     const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("opencode-worktree-clones-")))
     const first = path.join(tmp.path, "first")
@@ -67,8 +67,7 @@ it.live("refresh discovers both clones while list alone never discovers external
       await $`git worktree add --detach ${a} HEAD`.cwd(first).quiet()
       await $`git worktree add --detach ${b} HEAD`.cwd(second).quiet()
       expect(await api.worktree.list({ projectID })).toHaveLength(2)
-      await api.worktree.refresh({ projectID })
-      expect(await api.worktree.list({ projectID })).toEqual(
+      expect(await api.worktree.discover({ projectID })).toEqual(
         expect.arrayContaining([
           { directory: first },
           { directory: second },
@@ -78,7 +77,7 @@ it.live("refresh discovers both clones while list alone never discovers external
       )
       await fs.rm(second, { recursive: true })
       await $`git worktree remove ${a}`.cwd(first).quiet()
-      await api.worktree.refresh({ projectID })
+      await api.worktree.discover({ projectID })
       const rows = await api.worktree.list({ projectID })
       expect(rows).not.toContainEqual({ directory: a, strategy: "git" })
       expect(rows).not.toContainEqual({ directory: second })
@@ -198,7 +197,7 @@ it.live(
         const projectID = session.projectID
         const created = await api.worktree.create({ projectID })
         expect(path.dirname(created.directory)).toBe(destination)
-        await api.worktree.refresh({ projectID })
+        await api.worktree.discover({ projectID })
         expect(await api.worktree.list({ projectID })).toContainEqual({
           directory: created.directory,
           strategy: "git",
@@ -316,7 +315,7 @@ it.live(
       const api = OpenCode.make({ baseUrl: server.base, headers: server.headers })
       yield* Effect.promise(async () => {
         const session = await api.session.create({ location: { directory: source } })
-        await api.worktree.refresh({ projectID: session.projectID })
+        await api.worktree.discover({ projectID: session.projectID })
         expect(await api.worktree.list({ projectID: session.projectID })).toContainEqual({
           directory: path.join(destination, "delegated"),
           strategy: "target-copy",

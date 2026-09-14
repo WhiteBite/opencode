@@ -1006,8 +1006,8 @@ configuration, start plugins, or discover filesystem changes.
 ```ts
 const projectID = ctx.location.project.id
 const created = await ctx.worktree.create({ projectID, name: "task" })
-const inventory = await ctx.worktree.list({ projectID })
-await ctx.worktree.refresh({ projectID })
+const saved = await ctx.worktree.list({ projectID })
+const inventory = await ctx.worktree.discover({ projectID })
 await ctx.worktree.remove({ projectID, directory: created.directory, force: false })
 ```
 
@@ -1018,7 +1018,7 @@ does not change the configuration root.
 A supplied starting ref must be supported by the selected strategy;
 Rift's native snapshot operation, for example, has no ref-selection option.
 
-Create and refresh wait for the canonical checkout's plugins to activate. Calls made during that checkout's plugin
+Create and discover wait for the canonical checkout's plugins to activate. Calls made during that checkout's plugin
 setup see registrations made so far and do not wait for their own activation.
 
 Remove loads the canonical configuration and activates its plugins, then uses the worktree's recorded strategy rather
@@ -1037,13 +1037,13 @@ Missing owners fail removal rather than falling back to Git. A strategy can thro
 message: "Uncommitted changes", forceRequired: true })`, importing `Worktree` from `@opencode/plugin`, to request
 force confirmation without depending on Core or Git errors.
 
-Refresh loads canonical configuration and asks all available strategies to discover worktrees across known checkout
-roots. It combines results, preserves recorded ownership, and prunes missing directories. A failed discovery source
-is logged while other sources continue. Existing directories remain saved even if no available strategy reports them.
+Discover loads canonical configuration and asks all available strategies to find worktrees across known checkout roots.
+It combines results, preserves recorded ownership, prunes missing directories, and returns the complete latest saved
+inventory. A failed discovery source is logged while other sources continue. Existing directories remain saved even if
+no available strategy reports them.
 
 ```ts
-await ctx.worktree.refresh({ projectID })
-const inventory = await ctx.worktree.list({ projectID })
+const inventory = await ctx.worktree.discover({ projectID })
 ```
 
 #### Reference

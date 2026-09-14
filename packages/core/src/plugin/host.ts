@@ -474,7 +474,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
     worktree: {
       list: worktrees.list,
       create: (input) => worktrees.create(input, currentWorktreeStrategies),
-      refresh: (input) => worktrees.refresh(input, currentWorktreeStrategies).pipe(Effect.asVoid),
+      discover: (input) => worktrees.discover(input, currentWorktreeStrategies),
       remove: (input) => worktrees.remove(input, currentWorktreeStrategies),
       reload: worktreeStrategies.reload,
       transform: (callback) =>

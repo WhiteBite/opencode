@@ -75,7 +75,7 @@ test.each([
 
     const frame = await fixture.create()
 
-    expect(fixture.reads.worktrees).toEqual(["proj_test", "proj_test"])
+    expect(fixture.reads.worktrees).toEqual(["proj_test"])
     expect(frame).toContain(clone)
     expect(frame.indexOf(clone)).toBeLessThan(frame.indexOf(main))
     expect(fixture.requests).toEqual([
@@ -128,18 +128,18 @@ test("removal sends project ownership and the destination without a configuratio
   }
 })
 
-test("refresh explicitly discovers the project and preserves the worktree filter", async () => {
+test("discover explicitly scans the project and preserves the worktree filter", async () => {
   const fixture = await renderMove({ directory: clone, home: true })
   try {
     await fixture.move.open()
-    await fixture.app.waitFor(() => fixture.reads.worktrees.length === 2)
+    await fixture.app.waitFor(() => fixture.reads.discover.length === 1)
     await fixture.app.waitForFrame((frame) => frame.includes("Worktrees") && frame.includes(linked))
     await fixture.app.waitFor(() => fixture.app.renderer.currentFocusedEditor instanceof InputRenderable)
     await fixture.app.mockInput.typeText("linked")
     await fixture.app.waitForFrame((frame) => frame.includes(linked) && !frame.includes(clone))
     fixture.app.mockInput.pressKey("r", { ctrl: true })
-    await fixture.app.waitFor(() => fixture.reads.worktrees.length === 3)
-    expect(fixture.reads.refresh).toEqual([{ projectID: "proj_test" }, { projectID: "proj_test" }])
+    await fixture.app.waitFor(() => fixture.reads.discover.length === 2)
+    expect(fixture.reads.discover).toEqual([{ projectID: "proj_test" }, { projectID: "proj_test" }])
     const frame = await fixture.app.waitForFrame((frame) => frame.includes(linked) && !frame.includes(clone))
     expect(frame).toContain("linked")
   } finally {
@@ -226,7 +226,7 @@ async function renderMove(input: {
   const requests: unknown[] = []
   const removals: unknown[] = []
   const moves: unknown[] = []
-  const reads = { session: 0, locations: [] as string[], worktrees: [] as string[], refresh: [] as unknown[] }
+  const reads = { session: 0, locations: [] as string[], worktrees: [] as string[], discover: [] as unknown[] }
   const calls = createFetch(async (url, request) => {
     if (url.pathname === "/api/location") {
       const directory = url.searchParams.get("location[directory]") ?? launch
@@ -288,9 +288,9 @@ async function renderMove(input: {
         return new Response(null, { status: 204 })
       }
     }
-    if (url.pathname === "/api/worktree/refresh") {
-      reads.refresh.push(await request.json())
-      return new Response(null, { status: 204 })
+    if (url.pathname === "/api/worktree/discover") {
+      reads.discover.push(await request.json())
+      return json([{ directory: main }, { directory: clone }, { directory: linked, strategy: "git" }])
     }
     if (url.pathname === "/api/session/ses_clone/move") {
       moves.push(await request.json())

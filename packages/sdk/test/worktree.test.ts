@@ -57,7 +57,7 @@ test("embedded worktree APIs use project IDs and SDK-registered strategies", asy
     strategy: "sdk-copy",
   })
   expect(state.discovered).toBe(0)
-  await opencode.worktree.refresh({ projectID })
+  expect(await opencode.worktree.discover({ projectID })).toEqual(await opencode.worktree.list({ projectID }))
   expect(state.discovered).toBe(1)
   await opencode.worktree.remove({ projectID, directory: worktree.directory, force: false })
   expect(state.removed).toBe(1)

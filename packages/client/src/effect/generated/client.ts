@@ -244,8 +244,8 @@ import type {
   WorktreeCreateOutput,
   WorktreeRemoveInput,
   WorktreeRemoveOutput,
-  WorktreeRefreshInput,
-  WorktreeRefreshOutput,
+  WorktreeDiscoverInput,
+  WorktreeDiscoverOutput,
   WorkspaceCreateInput,
   WorkspaceCreateOutput,
   WorkspaceDestroyInput,
@@ -1484,16 +1484,16 @@ const EndpointWorktreeRemove = (raw: RawClient["server.worktree"]) => (input: Wo
     }).pipe(Effect.mapError(mapClientError)),
   )
 
-const EndpointWorktreeRefresh = (raw: RawClient["server.worktree"]) => (input: WorktreeRefreshInput) =>
-  preserveEffect<WorktreeRefreshOutput>()(
-    raw["worktree.refresh"]({ payload: { projectID: input["projectID"] } }).pipe(Effect.mapError(mapClientError)),
+const EndpointWorktreeDiscover = (raw: RawClient["server.worktree"]) => (input: WorktreeDiscoverInput) =>
+  preserveEffect<WorktreeDiscoverOutput>()(
+    raw["worktree.discover"]({ payload: { projectID: input["projectID"] } }).pipe(Effect.mapError(mapClientError)),
   )
 
 const adaptGroupWorktree = (raw: RawClient["server.worktree"]) => ({
   list: EndpointWorktreeList(raw),
   create: EndpointWorktreeCreate(raw),
   remove: EndpointWorktreeRemove(raw),
-  refresh: EndpointWorktreeRefresh(raw),
+  discover: EndpointWorktreeDiscover(raw),
 })
 
 const EndpointWorkspaceCreate = (raw: RawClient["server.workspace"]) => (input: WorkspaceCreateInput) =>

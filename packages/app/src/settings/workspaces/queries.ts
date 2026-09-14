@@ -26,7 +26,7 @@ export function workspaceInventoryQuery(
         (await client.fetchQuery(workspaceProjectsQuery(context.sdk)))
           .filter((project) => projectID === undefined || project.id === projectID)
           .map(async (project) => {
-            const worktrees = (await context.sync.worktrees[shouldRefresh ? "refresh" : "load"](project.id)) ?? [
+            const worktrees = (await context.sync.worktrees[shouldRefresh ? "discover" : "list"](project.id)) ?? [
               { directory: project.canonical },
               ...project.sandboxes.map((directory) => ({ directory })),
             ]

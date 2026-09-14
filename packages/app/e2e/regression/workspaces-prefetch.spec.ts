@@ -46,7 +46,7 @@ for (const interaction of ["hover", "focus"] as const) {
   test(`project Worktrees ${interaction} prefetches only its inventory and reuses the request`, async ({ page }) => {
     const inventory = Promise.withResolvers<void>()
     const calls: string[] = []
-    const refreshes: string[] = []
+    const discoveries: string[] = []
     const sessions: string[] = []
     await page.route(
       (url) => url.pathname === "/api/project",
@@ -62,7 +62,7 @@ for (const interaction of ["hover", "focus"] as const) {
     )
     page.on("request", (request) => {
       const url = new URL(request.url())
-      if (url.pathname === "/api/worktree/refresh") refreshes.push(request.postDataJSON().projectID)
+      if (url.pathname === "/api/worktree/discover") discoveries.push(request.postDataJSON().projectID)
       if (url.pathname === "/api/session" && url.searchParams.has("directory"))
         sessions.push(url.searchParams.get("directory")!)
     })
@@ -92,8 +92,8 @@ for (const interaction of ["hover", "focus"] as const) {
     inventory.resolve()
     await expect(settings.getByText("2 worktrees", { exact: true })).toBeVisible()
     await expect(settings.getByText("Cached worktree session", { exact: true })).toBeVisible()
-    expect(calls).toEqual([project.id, project.id])
-    expect(refreshes).toEqual([project.id])
+    expect(calls).toEqual([project.id])
+    expect(discoveries).toEqual([project.id])
     await expect.poll(() => sessions.toSorted()).toEqual(sandboxes.toSorted())
   })
 }
@@ -116,10 +116,10 @@ for (const nested of [false, true]) {
       await page.reload()
       await page.getByTestId("settings-screen").getByRole("tab", { name: "Settings server", exact: true }).click()
     }
-    const calls = { projects: 0, worktrees: [] as string[], refreshes: [] as string[] }
+    const calls = { projects: 0, worktrees: [] as string[], discoveries: [] as string[] }
     page.on("request", (request) => {
-      if (new URL(request.url()).pathname === "/api/worktree/refresh")
-        calls.refreshes.push(request.postDataJSON().projectID)
+      if (new URL(request.url()).pathname === "/api/worktree/discover")
+        calls.discoveries.push(request.postDataJSON().projectID)
     })
     await page.route(
       (url) => url.pathname === "/api/project",
@@ -148,13 +148,13 @@ for (const nested of [false, true]) {
     await fetched
     await worktrees.focus()
     await expect(worktrees).toHaveAttribute("aria-selected", "false")
-    expect(calls).toEqual({ projects: 1, worktrees: [], refreshes: [] })
+    expect(calls).toEqual({ projects: 1, worktrees: [], discoveries: [] })
 
     await worktrees.click()
     await expect(settings.getByText("2 worktrees", { exact: true })).toBeVisible()
     expect(calls.projects).toBe(1)
     expect(calls.worktrees.toSorted()).toEqual([project.id, other.id].toSorted())
-    expect(calls.refreshes).toEqual([])
+    expect(calls.discoveries).toEqual([])
   })
 }
 

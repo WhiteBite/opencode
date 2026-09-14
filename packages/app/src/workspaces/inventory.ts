@@ -25,7 +25,7 @@ export function withWorktreeInventory(project: Project, worktrees: readonly Work
 export function createWorktreeInventory(input: {
   scope: ServerScope
   queryClient: QueryClient
-  api: () => Pick<ServerApi["worktree"], "list" | "refresh">
+  api: () => Pick<ServerApi["worktree"], "list" | "discover">
   updated: (projectID: string, worktrees: WorktreeDirectory[]) => void
 }) {
   const options = (projectID: string) => ({
@@ -43,22 +43,21 @@ export function createWorktreeInventory(input: {
     gcTime: Infinity,
     retry: false,
   })
+  const update = (projectID: string, items: WorktreeDirectory[]) => {
+    input.queryClient.setQueryData(worktreeInventoryKey(input.scope, projectID), items)
+    input.updated(projectID, items)
+    return items
+  }
   return {
     cached: (projectID: string) =>
       input.queryClient.getQueryData<WorktreeDirectory[]>(worktreeInventoryKey(input.scope, projectID)),
-    load: (projectID: string) => input.queryClient.fetchQuery(options(projectID)).catch(() => undefined),
-    refresh: async (projectID: string) => {
-      const items = await input.queryClient.fetchQuery(options(projectID)).catch(() => undefined)
-      await input
+    list: (projectID: string) =>
+      input.queryClient.fetchQuery({ ...options(projectID), staleTime: 0 }).catch(() => undefined),
+    discover: (projectID: string) =>
+      input
         .api()
-        .refresh({ projectID })
-        .catch(() => undefined)
-      return input.queryClient.fetchQuery({ ...options(projectID), staleTime: 0 }).catch(() => items)
-    },
-    // Only inventories some view already demanded are refreshed.
-    reload: (projectID: string) => {
-      if (!input.queryClient.getQueryState(worktreeInventoryKey(input.scope, projectID))) return Promise.resolve()
-      return input.queryClient.fetchQuery({ ...options(projectID), staleTime: 0 }).catch(() => undefined)
-    },
+        .discover({ projectID })
+        .then((items) => update(projectID, items))
+        .catch(() => undefined),
   }
 }

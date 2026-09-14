@@ -44,15 +44,14 @@ for the session and event groups.
 
 ## Worktrees
 
-Worktree operations require a `projectID`. Create and refresh load configuration and plugins from the project's saved
+Worktree operations require a `projectID`. Create and discover load configuration and plugins from the project's saved
 canonical checkout. List reads saved inventory only; remove activates canonical plugins and uses the recorded strategy,
 failing if that strategy is unavailable.
 
 ```ts
 const projectID = session.projectID
 const worktree = await opencode.worktree.create({ projectID, name: "task" })
-await opencode.worktree.refresh({ projectID })
-const inventory = await opencode.worktree.list({ projectID })
+const inventory = await opencode.worktree.discover({ projectID })
 await opencode.worktree.remove({ projectID, directory: worktree.directory, force: false })
 ```
 
