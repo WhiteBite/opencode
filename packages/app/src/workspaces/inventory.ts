@@ -46,20 +46,17 @@ export function createWorktreeInventory(input: {
   return {
     cached: (projectID: string) =>
       input.queryClient.getQueryData<WorktreeDirectory[]>(worktreeInventoryKey(input.scope, projectID)),
-    load: async (projectID: string) => {
-      const discover = !input.queryClient.getQueryState(worktreeInventoryKey(input.scope, projectID))
+    load: (projectID: string) => input.queryClient.fetchQuery(options(projectID)).catch(() => undefined),
+    refresh: async (projectID: string) => {
       const items = await input.queryClient.fetchQuery(options(projectID)).catch(() => undefined)
-      if (discover) {
-        // The worktree.updated event re-reads inventory only when discovery actually changes it.
-        void input
-          .api()
-          .refresh({ projectID })
-          .catch(() => undefined)
-      }
-      return items
+      await input
+        .api()
+        .refresh({ projectID })
+        .catch(() => undefined)
+      return input.queryClient.fetchQuery({ ...options(projectID), staleTime: 0 }).catch(() => items)
     },
     // Only inventories some view already demanded are refreshed.
-    refresh: (projectID: string) => {
+    reload: (projectID: string) => {
       if (!input.queryClient.getQueryState(worktreeInventoryKey(input.scope, projectID))) return Promise.resolve()
       return input.queryClient.fetchQuery({ ...options(projectID), staleTime: 0 }).catch(() => undefined)
     },

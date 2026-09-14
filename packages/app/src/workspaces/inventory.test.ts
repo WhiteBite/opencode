@@ -51,16 +51,16 @@ describe("createWorktreeInventory", () => {
       ["/repo", [{ directory: "/repo" }, { directory: "/repo/feature", strategy: "git" }]],
     ])
     expect(setupResult.inventory.cached("/repo")).toHaveLength(2)
-    expect(setupResult.discoveries).toEqual(["/repo"])
+    expect(setupResult.discoveries).toEqual([])
     setupResult.client.clear()
   })
 
-  test("refreshes only inventories a view already loaded", async () => {
+  test("reloads only saved inventories a view already loaded", async () => {
     const setupResult = setup(async (directory) => [{ directory }])
-    await setupResult.inventory.refresh("/never-opened")
+    await setupResult.inventory.reload("/never-opened")
     expect(setupResult.calls).toEqual([])
     await setupResult.inventory.load("/opened")
-    await setupResult.inventory.refresh("/opened")
+    await setupResult.inventory.reload("/opened")
     expect(setupResult.calls).toEqual(["/opened", "/opened"])
     setupResult.client.clear()
   })
@@ -87,13 +87,14 @@ describe("createWorktreeInventory", () => {
     expect(worktreeInventoryKey(ServerScope.local, "/repo")).not.toEqual(worktreeInventoryKey(remote, "/repo"))
   })
 
-  test("shows saved inventory during discovery and re-reads it on an inventory event", async () => {
+  test("discovery refreshes one project and then re-reads its saved inventory", async () => {
     const rows = [{ directory: "/repo" }]
     const result = setup(async () => [...rows])
     expect(await result.inventory.load("project")).toEqual(rows)
+    const pending = result.inventory.refresh("project")
     rows.push({ directory: "/external" })
     result.discovery.resolve()
-    expect(await result.inventory.refresh("project")).toEqual(rows)
+    expect(await pending).toEqual(rows)
     expect(result.calls).toEqual(["project", "project"])
     expect(result.discoveries).toEqual(["project"])
     result.client.clear()

@@ -13,7 +13,12 @@ function workspaceProjectsQuery(sdk: ServerSDK) {
   })
 }
 
-export function workspaceInventoryQuery(context: ServerCtx, client: QueryClient, projectID?: string) {
+export function workspaceInventoryQuery(
+  context: ServerCtx,
+  client: QueryClient,
+  projectID?: string,
+  shouldRefresh = projectID !== undefined,
+) {
   return queryOptions({
     queryKey: [context.sdk.scope, "settings-workspace-inventory", projectID ?? null],
     queryFn: async () =>
@@ -21,7 +26,7 @@ export function workspaceInventoryQuery(context: ServerCtx, client: QueryClient,
         (await client.fetchQuery(workspaceProjectsQuery(context.sdk)))
           .filter((project) => projectID === undefined || project.id === projectID)
           .map(async (project) => {
-            const worktrees = (await context.sync.worktrees.load(project.id)) ?? [
+            const worktrees = (await context.sync.worktrees[shouldRefresh ? "refresh" : "load"](project.id)) ?? [
               { directory: project.canonical },
               ...project.sandboxes.map((directory) => ({ directory })),
             ]
@@ -43,7 +48,7 @@ export function useWorkspacesPrefetch(
     if (!current || current.sdk.connection.status() !== "connected") return
     const project = projectID?.()
     if (project) {
-      void client.prefetchQuery(workspaceInventoryQuery(current, client, project))
+      void client.prefetchQuery(workspaceInventoryQuery(current, client, project, false))
       return
     }
     // Server-level hover warms metadata without booting every project's Location.
