@@ -1021,9 +1021,9 @@ Rift's native snapshot operation, for example, has no ref-selection option.
 Create and refresh wait for the canonical checkout's plugins to activate. Calls made during that checkout's plugin
 setup see registrations made so far and do not wait for their own activation.
 
-Remove uses the worktree's recorded strategy from the already-loaded canonical registry, or bundled Git. It does not
-load configuration or activate plugins. An unavailable owner produces an error, including after a restart before its
-plugin has loaded. The worktree's destination can be elsewhere:
+Remove loads the canonical configuration and activates its plugins, then uses the worktree's recorded strategy rather
+than the currently selected default. An unavailable recorded owner produces an error. The worktree's destination can
+be elsewhere:
 
 ```ts
 await ctx.worktree.remove({

@@ -12220,7 +12220,7 @@
             }
           }
         },
-        "description": "Remove a saved project worktree using its recorded, already-available strategy. Does not load configuration.",
+        "description": "Load the project's canonical configuration and remove a saved worktree using its recorded strategy.",
         "summary": "Remove worktree",
         "requestBody": {
           "content": {

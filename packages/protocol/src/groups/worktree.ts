@@ -56,7 +56,7 @@ export const WorktreeGroup = HttpApiGroup.make("server.worktree")
         identifier: "worktree.remove",
         summary: "Remove worktree",
         description:
-          "Remove a saved project worktree using its recorded, already-available strategy. Does not load configuration.",
+          "Load the project's canonical configuration and remove a saved worktree using its recorded strategy.",
       }),
     ),
   )

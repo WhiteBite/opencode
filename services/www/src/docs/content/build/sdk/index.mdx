@@ -45,8 +45,8 @@ for the session and event groups.
 ## Worktrees
 
 Worktree operations require a `projectID`. Create and refresh load configuration and plugins from the project's saved
-canonical checkout. List reads saved inventory only; remove uses the recorded strategy without loading configuration
-and fails if that strategy is unavailable.
+canonical checkout. List reads saved inventory only; remove activates canonical plugins and uses the recorded strategy,
+failing if that strategy is unavailable.
 
 ```ts
 const projectID = session.projectID

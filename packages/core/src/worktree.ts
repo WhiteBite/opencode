@@ -1,6 +1,6 @@
 export * as Worktree from "./worktree.js"
 
-import { Context, Effect, Layer, Option, Schema } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
 import path from "path"
 import { AbsolutePath } from "./schema.js"
@@ -266,19 +266,8 @@ const layer = Layer.effect(
       const worktreeDirectory = yield* canonical(fs, input.directory)
       const stored = yield* ops.find(worktreeDirectory)
       if (!stored?.strategy) return yield* new InvalidDirectoryError({ directory: worktreeDirectory })
-      // Inspect only an already-loaded canonical registry. Removing must never boot config or plugins.
-      const strategies =
-        current?.directory === row.worktree
-          ? current.get().strategies
-          : yield* locations.contextEffectOption(Location.Ref.make({ directory: row.worktree })).pipe(
-              Effect.map(
-                Option.match({
-                  onSome: (context) => Context.get(context, WorktreeStrategies.Service).get().strategies,
-                  onNone: () => new Map([[gitStrategy.id, gitStrategy]]),
-                }),
-              ),
-            )
-      const strategy = yield* getStrategy(StrategyID.make(stored.strategy), strategies)
+      const settings = yield* load(row.worktree, current)
+      const strategy = yield* getStrategy(StrategyID.make(stored.strategy), settings.strategies)
       yield* strategy
         .remove({
           directory: worktreeDirectory,

@@ -87,7 +87,7 @@ it.live("refresh discovers both clones while list alone never discovers external
   }),
 )
 
-it.live("remove uses bundled Git without loading configuration and enforces project ownership", () =>
+it.live("remove loads canonical strategies and enforces project ownership", () =>
   Effect.gen(function* () {
     const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("opencode-worktree-remove-")))
     const directory = path.join(tmp.path, "repo")
@@ -107,13 +107,12 @@ it.live("remove uses bundled Git without loading configuration and enforces proj
     yield* Effect.promise(async () => {
       const session = await api.session.create({ location: { directory: linked } })
       const foreign = await api.session.create({ location: { directory: other } })
-      const loaded = await api.debug.location.list()
       await expect(
         api.worktree.remove({ projectID: foreign.projectID, directory: linked, force: true }),
       ).rejects.toMatchObject({ name: "WorktreeError" })
       expect(await fs.stat(linked).then((stat) => stat.isDirectory())).toBe(true)
       await api.worktree.remove({ projectID: session.projectID, directory: linked, force: false })
-      expect(await api.debug.location.list()).toEqual(loaded)
+      expect(await api.debug.location.list()).toContainEqual({ directory })
       expect(await api.worktree.list({ projectID: session.projectID })).toEqual([{ directory }])
     })
   }),
@@ -212,7 +211,7 @@ it.live(
 )
 
 it.live(
-  "uses canonical plugins for shared clones and remove only uses already-loaded strategies",
+  "uses canonical plugins for shared clones and recorded strategy removal",
   () =>
     Effect.gen(function* () {
       const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("opencode-worktree-plugins-")))
@@ -261,21 +260,7 @@ it.live(
 
         await Bun.write(path.join(custom.directory, "dirty.txt"), "keep me")
         await api.debug.location.evict({ location: { directory: first } })
-        const loaded = await api.debug.location.list()
         const remove = new URL("/api/worktree", server.base)
-        const unavailable = await fetch(remove, {
-          method: "DELETE",
-          headers: { ...server.headers, "content-type": "application/json" },
-          body: JSON.stringify({ projectID, directory: custom.directory, force: true }),
-        })
-        expect(unavailable.status).toBe(400)
-        expect(await unavailable.json()).toMatchObject({
-          data: { message: "Worktree strategy unavailable: test-copy" },
-        })
-        expect(await Bun.file(path.join(custom.directory, "dirty.txt")).text()).toBe("keep me")
-        expect(await api.worktree.list({ projectID })).toEqual(rows)
-        expect(await api.debug.location.list()).toEqual(loaded)
-        await api.worktree.refresh({ projectID })
         const failure = await fetch(remove, {
           method: "DELETE",
           headers: { ...server.headers, "content-type": "application/json" },
@@ -284,6 +269,8 @@ it.live(
         expect(failure.status).toBe(400)
         expect(await failure.json()).toMatchObject({ data: { forceRequired: true } })
         expect(await Bun.file(path.join(custom.directory, "dirty.txt")).text()).toBe("keep me")
+        expect(await api.worktree.list({ projectID })).toEqual(rows)
+        expect(await api.debug.location.list()).toContainEqual({ directory: first })
 
         await api.worktree.remove({
           projectID,
